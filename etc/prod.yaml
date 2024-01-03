@@ -1,0 +1,6 @@
+Name: simplerpc
+ListenOn: 0.0.0.0:8080
+RestConf:
+  Name: simpleapi
+  Host: 0.0.0.0
+  Port: 8888

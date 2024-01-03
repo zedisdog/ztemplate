@@ -1,0 +1,25 @@
+syntax = "v1"
+
+info(
+	author: "zed"
+	desc: "能效管理"
+)
+
+@server(
+	prefix: simple
+	group: healthz
+)
+
+service simple-api {
+	@doc "健康检查"
+	@handler Healthz
+	get /healthz (HealthReq) returns (HealthResp)
+}
+
+type (
+	HealthReq {
+	}
+
+	HealthResp {
+	}
+)

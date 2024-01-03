@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option go_package = "./pb";
+
+package pb;
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+
+
+service ExampleService {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+        description: "example"
+    };
+    rpc Example (NoContentReq) returns (NoContentResp) {
+        option (google.api.http) = {
+            get: "/example"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "示例"
+        };
+    }
+}
+
+message NoContentReq {}
+message NoContentResp {}

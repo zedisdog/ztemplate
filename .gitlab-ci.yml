@@ -1,0 +1,79 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  VAR_REPOSITORY: "ip:port/base/simple"
+  VAR_CHART_NAME: "simple"
+
+build-dev:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop" && $CI_COMMIT_MESSAGE =~ /Deploy/
+  tags:
+    - dev
+  script:
+    - |
+      docker build --build-arg GIT_USERNAME=$GIT_TMP_USER --build-arg GIT_PASSWORD=$GIT_TMP_PASS --build-arg RUN_ENV=dev -t $VAR_REPOSITORY:$CI_COMMIT_BRANCH-$CI_COMMIT_SHA .
+      docker push $VAR_REPOSITORY:$CI_COMMIT_BRANCH-$CI_COMMIT_SHA
+
+deploy-dev:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop" && $CI_COMMIT_MESSAGE =~ /Deploy/
+  tags:
+    - dev
+  script:
+    - |
+      sed -i 's#^\s\{2\}tag:.\+#  tag: '$CI_COMMIT_BRANCH-$CI_COMMIT_SHA'#g' ./helm/values.yaml
+      sed -i 's#^\s\{2\}repository:.\+#  repository: '$VAR_REPOSITORY'#g' ./helm/values.yaml
+      sed -i 's#^name:.\+#name: '$VAR_CHART_NAME'#g' ./helm/Chart.yaml
+      helm -n base upgrade -i --wait $VAR_CHART_NAME ./helm
+
+build-test:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH == "test"
+  tags:
+    - test
+  script:
+    - |
+      docker build --build-arg GIT_USERNAME=$GIT_TMP_USER --build-arg GIT_PASSWORD=$GIT_TMP_PASS --build-arg RUN_ENV=test -t $VAR_REPOSITORY:$CI_COMMIT_BRANCH-$CI_COMMIT_SHA .
+      docker push $VAR_REPOSITORY:$CI_COMMIT_BRANCH-$CI_COMMIT_SHA
+
+deploy-test:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "test"
+  tags:
+    - test
+  script:
+    - |
+      sed -i 's#^\s\{2\}tag:.\+#  tag: '$CI_COMMIT_BRANCH-$CI_COMMIT_SHA'#g' ./helm/values.yaml
+      sed -i 's#^\s\{2\}repository:.\+#  repository: '$VAR_REPOSITORY'#g' ./helm/values.yaml
+      sed -i 's#^name:.\+#name: '$VAR_CHART_NAME'#g' ./helm/Chart.yaml
+      helm -n test upgrade -i --wait $VAR_CHART_NAME ./helm
+
+build-prod:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v.+$/
+  tags:
+    - prod
+  script:
+    - |
+      docker build --build-arg GIT_USERNAME=$GIT_TMP_USER --build-arg GIT_PASSWORD=$GIT_TMP_PASS --build-arg RUN_ENV=prod -t $VAR_REPOSITORY:$CI_COMMIT_TAG .
+      docker push $VAR_REPOSITORY:$CI_COMMIT_TAG
+
+deploy-prod:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v.+$/
+  tags:
+    - prod
+  script:
+    - |
+      sed -i 's#^\s\{2\}tag:.\+#  tag: '$CI_COMMIT_TAG'#g' ./helm/values.yaml
+      sed -i 's#^\s\{2\}repository:.\+#  repository: '$VAR_REPOSITORY'#g' ./helm/values.yaml
+      sed -i 's#^name:.\+#name: '$VAR_CHART_NAME'#g' ./helm/Chart.yaml
+      helm -n prod upgrade -i --wait $VAR_CHART_NAME ./helm
